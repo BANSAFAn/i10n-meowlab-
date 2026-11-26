@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="uk" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MeowLab i10n — Portable Zig Installer</title>
+    <style>
+      :root {
+        --bg: #11110f;
+        --paper-sheet: #171714;
+        --paper-inset: #1d1d19;
+        --ink: #f3efe4;
+        --ink-muted: #a8a296;
+        --border-ink: #34332d;
+        --shadow-hard: #050504;
+        --accent: #f59e0b;
+        --accent-soft: rgba(245, 158, 11, 0.14);
+        --green: #22c55e;
+        --green-soft: rgba(34, 197, 94, 0.14);
+        --red: #ef4444;
+      }
+      html[data-theme="light"] {
+        --bg: #ece7da;
+        --paper-sheet: #f7f3e8;
+        --paper-inset: #eee8d8;
+        --ink: #181615;
+        --ink-muted: #5a554c;
+        --border-ink: #181615;
+        --shadow-hard: #181615;
+        --accent: #d97706;
+        --accent-soft: rgba(217, 119, 6, 0.12);
+        --green: #15803d;
+        --green-soft: rgba(21, 128, 61, 0.12);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+        min-height: 100vh;
+        background-image:
+          linear-gradient(to right, rgba(255, 248, 230, 0.035) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 248, 230, 0.035) 1px, transparent 1px);
+        background-size: 36px 36px;
+      }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+
+      .topbar {
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.7rem;
+        padding: 0.7rem 1rem; background: var(--paper-sheet); border: 2px solid var(--border-ink);
+        border-radius: 10px; box-shadow: 4px 4px 0 var(--shadow-hard); margin-bottom: 1rem;
+      }
+      .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 900; font-size: 1.05rem; }
+      .brand-mark {
+        width: 30px; height: 30px; border-radius: 6px; background: var(--accent); color: #111;
+        display: inline-flex; align-items: center; justify-content: center; font-weight: 900; border: 2px solid var(--border-ink);
+      }
+      .controls { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+
+      .paper-btn, .paper-select, .paper-input {
+        padding: 0.46rem 0.8rem; border-radius: 7px; border: 1.5px solid var(--border-ink);
+        background: var(--paper-inset); color: var(--ink); font-family: inherit; font-size: 0.83rem; font-weight: 700;
+      }
+      .paper-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+      .paper-btn:hover:not(:disabled) { border-color: var(--accent); }
+      .paper-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      .paper-btn-accent { background: var(--accent); color: #111; border-color: var(--border-ink); box-shadow: 3px 3px 0 var(--shadow-hard); font-weight: 900; }
+
+      .sheet {
+        background: var(--paper-sheet); border: 2px solid var(--border-ink); border-radius: 11px;
+        box-shadow: 5px 5px 0 var(--shadow-hard); padding: 1.15rem; margin-bottom: 1rem;
+      }
+      .dir-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+      .dir-row .paper-input { flex: 1 1 320px; }
+      .detected-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+      .pill-btn {
+        padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--border-ink);
+        background: var(--paper-inset); color: var(--ink-muted); font-size: 0.74rem; font-weight: 700; cursor: pointer;
+      }
+      .pill-btn:hover, .pill-btn.active { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+
+      .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+      .tab-btn {
+        padding: 0.55rem 1rem; border-radius: 8px; border: 1.5px solid var(--border-ink);
+        background: var(--paper-inset); color: var(--ink-muted); font-weight: 800; font-size: 0.86rem; cursor: pointer;
+      }
+      .tab-btn.active { background: var(--accent); color: #111; box-shadow: 3px 3px 0 var(--shadow-hard); }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.75rem 0 1rem; }
+      .pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 0.85rem; }
+      .pack-card {
+        background: var(--paper-inset); border: 1.5px solid var(--border-ink); border-radius: 9px; padding: 0.95rem;
+        display: flex; flex-direction: column; justify-content: space-between; gap: 0.7rem;
+      }
+      .pack-card:hover { border-color: var(--accent); }
+      .badge {
+        display: inline-block; padding: 0.14rem 0.48rem; border-radius: 4px; font-size: 0.7rem; font-weight: 900;
+        background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.45); text-transform: uppercase;
+      }
+
+      .dropzone {
+        border: 2px dashed var(--border-ink); border-radius: 10px; padding: 1.8rem 1rem; text-align: center;
+        background: var(--paper-inset); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+      .log-box {
+        background: #0d0d0b; color: #d6d3c9; border: 1.5px solid var(--border-ink); border-radius: 8px;
+        padding: 0.75rem 0.9rem; font-size: 0.78rem; line-height: 1.55; max-height: 170px; overflow-y: auto;
+      }
+      .log-ok { color: #22c55e; }
+      .log-err { color: #ef4444; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark mono">M</span>
+          <span>MeowLab <span class="mono" style="color: var(--accent);">i10n</span> <span id="os-pill" class="mono" style="font-size:0.72rem;color:var(--ink-muted);">ZIG PORTABLE</span></span>
+        </div>
+        <div class="controls">
+          <select id="lang-select" class="paper-select" aria-label="Language">
+            <option value="uk">🇺🇦 Українська</option>
+            <option value="en">🇬🇧 English</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="pl">🇵🇱 Polski</option>
+            <option value="be">🇧🇾 Беларуская</option>
+            <option value="kk">🇰🇿 Қазақша</option>
+            <option value="cs">🇨🇿 Čeština</option>
+            <option value="ro">🇷🇴 Română</option>
+            <option value="mo">🇲🇩 Moldovenească</option>
+            <option value="hu">🇭🇺 Magyar</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="tr">🇹🇷 Türkçe</option>
+          </select>
+          <button type="button" id="theme-btn" class="paper-btn">☀ / ☾</button>
+        </div>
+      </header>
+
+      <!-- Target Minecraft / Instance Folder -->
+      <section class="sheet">
+        <div class="mono" style="font-size:0.72rem;color:var(--accent);font-weight:900;margin-bottom:0.4rem;" data-i18n="dirKicker">01 // ПАПКА MINECRAFT АБО ІНСТАНСУ</div>
+        <div class="dir-row">
+          <input id="game-dir" class="paper-input mono" type="text" data-i18n-ph="dirPh" placeholder="Шлях до .minecraft або папки модпака..." />
+          <button type="button" id="refresh-info-btn" class="paper-btn" data-i18n="detectBtn">Автопошук</button>
+        </div>
+        <div id="detected-dirs" class="detected-pills"></div>
+      </section>
+
+      <!-- Mode Switcher -->
+      <div class="tabs">
+        <button type="button" class="tab-btn active" data-tab="server" data-i18n="tabServer">🌐 З сервера (i10n-downloadform)</button>
+        <button type="button" class="tab-btn" data-tab="local" data-i18n="tabLocal">📁 Локальний файл</button>
+      </div>
+
+      <!-- Tab 1: Remote Server -->
+      <section id="pane-server" class="sheet">
+        <div style="display:flex;flex-wrap:wrap;gap:0.6rem;align-items:center;justify-content:space-between;">
+          <input id="search-input" class="paper-input" style="flex:1 1 260px;" type="search" data-i18n-ph="searchPh" placeholder="Пошук модпака, моду, шейдера..." />
+          <button type="button" id="reload-catalog-btn" class="paper-btn" data-i18n="reloadBtn">Оновити каталог</button>
+        </div>
+        <div id="cat-chips" class="chips"></div>
+        <div id="pack-grid" class="pack-grid"></div>
+      </section>
+
+      <!-- Tab 2: Local Install -->
+      <section id="pane-local" class="sheet" style="display:none;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0.75rem;margin-bottom:0.9rem;">
+          <div>
+            <label class="mono" style="display:block;font-size:0.74rem;color:var(--ink-muted);margin-bottom:0.35rem;" data-i18n="targetFolderLabel">Куди встановити:</label>
+            <select id="local-target" class="paper-select" style="width:100%;">
+              <option value="resourcepacks">resourcepacks/ (Ресурспак / Переклад)</option>
+              <option value="shaderpacks">shaderpacks/ (Шейдер)</option>
+              <option value="datapacks">datapacks/ (Датапак)</option>
+              <option value="mods">mods/ (Мод)</option>
+              <option value="config">config/ (Конфіг / Інше)</option>
+            </select>
+          </div>
+          <div>
+            <label class="mono" style="display:block;font-size:0.74rem;color:var(--ink-muted);margin-bottom:0.35rem;" data-i18n="pickedFileLabel">Обраний файл:</label>
+            <div id="picked-file-name" class="paper-input mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+          </div>
+        </div>
+
+        <div id="dropzone" class="dropzone">
+          <input id="local-file-input" type="file" style="display:none;" accept=".zip,.json,.lang,.txt,.jar" />
+          <div style="font-size:1rem;font-weight:900;margin-bottom:0.3rem;" data-i18n="dropTitle">Перетягніть файл перекладу сюди або натисніть для вибору</div>
+          <div class="mono" style="font-size:0.76rem;color:var(--ink-muted);">.zip · .json · .lang · .txt · .jar</div>
+        </div>
+
+        <div style="margin-top:0.9rem;display:flex;justify-content:flex-end;">
+          <button type="button" id="local-install-btn" class="paper-btn paper-btn-accent" disabled data-i18n="installLocalBtn">Встановити локальний файл</button>
+        </div>
+      </section>
+
+      <!-- Live Log -->
+      <section class="sheet">
+        <div class="mono" style="font-size:0.72rem;color:var(--accent);font-weight:900;margin-bottom:0.45rem;" data-i18n="logTitle">ЖУРНАЛ ВСТАНОВЛЕННЯ</div>
+        <div id="log-box" class="log-box mono"></div>
+      </section>
+    </div>
+
+    <script>
+      const I18N = {
+        uk: {
+          dirKicker: '01 // ПАПКА MINECRAFT АБО ІНСТАНСУ', dirPh: 'Вкажіть шлях до .minecraft або папки модпака...', detectBtn: 'Автопошук',
+          tabServer: '🌐 З сервера (i10n-downloadform)', tabLocal: '📁 Локальний файл', searchPh: 'Пошук модпака, моду, шейдера...',
+          reloadBtn: 'Оновити каталог', all: 'Усі', modpack: 'Модпаки', mod: 'Моди', shader: 'Шейдери', resourcepack: 'Ресурспаки',
+          datapack: 'Датапаки', other: 'Інше', installBtn: 'Встановити в 1 клік', installing: 'Встановлення...',
+          targetFolderLabel: 'Куди встановити:', pickedFileLabel: 'Обраний файл:', dropTitle: 'Перетягніть файл перекладу сюди або натисніть для вибору',
+          installLocalBtn: 'Встановити локальний файл', logTitle: 'ЖУРНАЛ ВСТАНОВЛЕННЯ', needDir: 'Спочатку вкажіть папку Minecraft!',
+          loading: 'Завантаження каталогу з i10n-downloadform...', empty: 'Нічого не знайдено.'
+        },
+        en: {
+          dirKicker: '01 // MINECRAFT OR INSTANCE FOLDER', dirPh: 'Path to .minecraft or modpack instance...', detectBtn: 'Auto-Detect',
+          tabServer: '🌐 Online Server (i10n-downloadform)', tabLocal: '📁 Local File', searchPh: 'Search modpack, mod, shader...',
+          reloadBtn: 'Refresh Catalog', all: 'All', modpack: 'Modpacks', mod: 'Mods', shader: 'Shaders', resourcepack: 'Resource Packs',
+          datapack: 'Datapacks', other: 'Other', installBtn: 'Install in 1 Click', installing: 'Installing...',
+          targetFolderLabel: 'Target subfolder:', pickedFileLabel: 'Selected file:', dropTitle: 'Drop translation file here or click to browse',
+          installLocalBtn: 'Install Local File', logTitle: 'INSTALLATION LOG', needDir: 'Please set your Minecraft folder first!',
+          loading: 'Loading catalog from i10n-downloadform...', empty: 'No matching packs found.'
+        },
+        de: { tabServer: '🌐 Server (i10n-downloadform)', tabLocal: '📁 Lokale Datei', detectBtn: 'Auto-Suche', installBtn: '1-Klick-Installation', installLocalBtn: 'Lokale Datei installieren', all: 'Alle', modpack: 'Modpacks', mod: 'Mods', shader: 'Shader', resourcepack: 'Ressourcenpakete', datapack: 'Datenpakete', other: 'Sonstiges' },
+        pl: { tabServer: '🌐 Z serwera (i10n-downloadform)', tabLocal: '📁 Plik lokalny', detectBtn: 'Wykryj', installBtn: 'Zainstaluj 1 kliknięciem', installLocalBtn: 'Zainstaluj plik lokalny', all: 'Wszystkie', modpack: 'Paczki modów', mod: 'Mody', shader: 'Shadery', resourcepack: 'Paczki zasobów', datapack: 'Paczki danych', other: 'Inne' },
+        be: { tabServer: '🌐 З сервера (i10n-downloadform)', tabLocal: '📁 Лакальны файл', detectBtn: 'Аўтапошук', installBtn: 'Усталяваць у 1 клік', installLocalBtn: 'Усталяваць лакальны файл', all: 'Усе', modpack: 'Модпакі', mod: 'Моды', shader: 'Шэйдары', resourcepack: 'Рэсурспакі', datapack: 'Датапакі', other: 'Іншае' },
+        kk: { tabServer: '🌐 Серверден (i10n-downloadform)', tabLocal: '📁 Жергілікті файл', detectBtn: 'Іздеу', installBtn: '1 басумен орнату', installLocalBtn: 'Жергілікті файлды орнату', all: 'Барлығы', modpack: 'Модпактар', mod: 'Модтар', shader: 'Шейдерлер', resourcepack: 'Ресурспактар', datapack: 'Датапактар', other: 'Басқа' },
+        cs: { tabServer: '🌐 Ze serveru (i10n-downloadform)', tabLocal: '📁 Místní soubor', detectBtn: 'Zjistit', installBtn: 'Nainstalovat jedním klikem', installLocalBtn: 'Nainstalovat místní soubor', all: 'Vše', modpack: 'Modpacky', mod: 'Mody', shader: 'Shadery', resourcepack: 'Resource packy', datapack: 'Datapacky', other: 'Ostatní' },
+        ro: { tabServer: '🌐 Server (i10n-downloadform)', tabLocal: '📁 Fișier local', detectBtn: 'Detectează', installBtn: 'Instalează', installLocalBtn: 'Instalează fișier local', all: 'Toate', modpack: 'Modpack-uri', mod: 'Moduri', shader: 'Shadere', resourcepack: 'Resource pack-uri', datapack: 'Datapack-uri', other: 'Altele' },
+        mo: { tabServer: '🌐 Server (i10n-downloadform)', tabLocal: '📁 Fișier local', detectBtn: 'Detectează', installBtn: 'Instalează', installLocalBtn: 'Instalează fișier local', all: 'Toate', modpack: 'Modpack-uri', mod: 'Moduri', shader: 'Shadere', resourcepack: 'Resource pack-uri', datapack: 'Datapack-uri', other: 'Altele' },
+        hu: { tabServer: '🌐 Szerverről (i10n-downloadform)', tabLocal: '📁 Helyi fájl', detectBtn: 'Keresés', installBtn: 'Telepítés 1 kattintással', installLocalBtn: 'Helyi fájl telepítése', all: 'Összes', modpack: 'Modpackek', mod: 'Modok', shader: 'Shaderek', resourcepack: 'Forráscsomagok', datapack: 'Adatcsomagok', other: 'Egyéb' },
+        fr: { tabServer: '🌐 Serveur (i10n-downloadform)', tabLocal: '📁 Fichier local', detectBtn: 'Détecter', installBtn: 'Installer en 1 clic', installLocalBtn: 'Installer le fichier local', all: 'Tous', modpack: 'Modpacks', mod: 'Mods', shader: 'Shaders', resourcepack: 'Packs de ressources', datapack: 'Datapacks', other: 'Autres' },
+        es: { tabServer: '🌐 Servidor (i10n-downloadform)', tabLocal: '📁 Archivo local', detectBtn: 'Detectar', installBtn: 'Instalar en 1 clic', installLocalBtn: 'Instalar archivo local', all: 'Todos', modpack: 'Modpacks', mod: 'Mods', shader: 'Shaders', resourcepack: 'Paquetes de recursos', datapack: 'Datapacks', other: 'Otros' },
+        tr: { tabServer: '🌐 Sunucu (i10n-downloadform)', tabLocal: '📁 Yerel Dosya', detectBtn: 'Algıla', installBtn: 'Tek Tıkla Kur', installLocalBtn: 'Yerel Dosyayı Kur', all: 'Tümü', modpack: 'Modpack', mod: 'Modlar', shader: 'Shader', resourcepack: 'Kaynak Paketleri', datapack: 'Veri Paketleri', other: 'Diğer' }
+      };
+
+      let lang = localStorage.getItem('meow_zig_lang') || 'uk';
+      let currentCat = 'all';
+      let query = '';
+      let catalog = [];
+      let pickedFile = null;
+
+      const tr = (k) => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || I18N.uk[k] || k;
+      const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+      function addLog(msg, cls = '') {
+        const box = document.getElementById('log-box');
+        const line = document.createElement('div');
+        line.className = cls;
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        box.prepend(line);
+      }
+
+      function applyI18n() {
+        document.documentElement.lang = lang;
+        document.getElementById('lang-select').value = lang;
+        document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = tr(el.dataset.i18n); });
+        document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = tr(el.dataset.i18nPh); });
+        renderChips();
+        renderPacks();
+      }
+
+      function renderChips() {
+        const cats = ['all', 'modpack', 'mod', 'shader', 'resourcepack', 'datapack', 'other'];
+        const el = document.getElementById('cat-chips');
+        el.innerHTML = cats.map((c) => `<button type="button" class="pill-btn ${currentCat === c ? 'active' : ''}" data-c="${c}">${esc(tr(c))}</button>`).join('');
+        el.querySelectorAll('[data-c]').forEach((b) => {
+          b.onclick = () => { currentCat = b.dataset.c; renderChips(); renderPacks(); };
+        });
+      }
+
+      function renderPacks() {
+        const grid = document.getElementById('pack-grid');
+        const q = query.trim().toLowerCase();
+        const filtered = catalog.filter((p) => {
+          if (currentCat !== 'all' && p.targetType !== currentCat) return false;
+          if (!q) return true;
+          const d = (p.description && (p.description[lang] || p.description.en || p.description.uk)) || '';
+          return `${p.name} ${p.targetProject} ${p.id} ${d}`.toLowerCase().includes(q);
+        });
+        if (!filtered.length) {
+          grid.innerHTML = `<div style="color:var(--ink-muted);">${esc(tr('empty'))}</div>`;
+          return;
+        }
+        grid.innerHTML = filtered.map((p) => {
+          const d = (p.description && (p.description[lang] || p.description.en || p.description.uk)) || '';
+          return `
+            <article class="pack-card">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:0.4rem;">
+                  <span class="badge mono">${esc(tr(p.targetType))}</span>
+                  <span class="mono" style="font-size:0.72rem;color:var(--ink-muted);">${esc(p.gameVersion)} · ${esc((p.language || '').toUpperCase())}</span>
+                </div>
+                <h3 style="margin:0.35rem 0 0.25rem;font-size:0.96rem;font-weight:900;">${esc(p.name)}</h3>
+                <p style="margin:0;font-size:0.82rem;color:var(--ink-muted);line-height:1.48;">${esc(d)}</p>
+              </div>
+              <div>
+                <div class="mono" style="font-size:0.72rem;color:var(--ink-muted);margin-bottom:0.55rem;">→ ${esc(p.installTarget)}/${esc(p.fileName)}</div>
+                <button type="button" class="paper-btn paper-btn-accent" style="width:100%;justify-content:center;" data-install-id="${esc(p.id)}">${esc(tr('installBtn'))}</button>
+              </div>
+            </article>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('[data-install-id]').forEach((btn) => {
+          btn.onclick = async () => {
+            const pack = catalog.find((x) => x.id === btn.dataset.installId);
+            const gameDir = (document.getElementById('game-dir').value || '').trim();
+            if (!gameDir) { addLog(tr('needDir'), 'log-err'); return; }
+            btn.disabled = true;
+            btn.textContent = tr('installing');
+            try {
+              const res = await fetch('/api/install-remote', {
+                method: 'POST',
+                headers: {
+                  'X-Download-Url': pack.downloadUrl,
+                  'X-File-Name': pack.fileName,
+                  'X-Game-Dir': encodeURIComponent(gameDir),
+                  'X-Install-Target': pack.installTarget || 'resourcepacks',
+                },
+              });
+              const txt = await res.text();
+              if (res.ok) addLog('✅ ' + txt, 'log-ok');
+              else addLog('❌ ' + txt, 'log-err');
+            } catch (e) {
+              addLog('❌ ' + e.message, 'log-err');
+            }
+            btn.disabled = false;
+            btn.textContent = tr('installBtn');
+          };
+        });
+      }
+
+      async function loadInfo() {
+        try {
+          const r = await fetch('/api/info');
+          const d = await r.json();
+          document.getElementById('os-pill').textContent = `ZIG ${d.version} · ${d.os.toUpperCase()}`;
+          const wrap = document.getElementById('detected-dirs');
+          wrap.innerHTML = (d.detected || []).map((p) => `<button type="button" class="pill-btn mono" data-dir="${esc(p)}">${esc(p)}</button>`).join('');
+          wrap.querySelectorAll('[data-dir]').forEach((b) => {
+            b.onclick = () => { document.getElementById('game-dir').value = b.dataset.dir; };
+          });
+          if (!document.getElementById('game-dir').value && d.detected && d.detected[0]) {
+            document.getElementById('game-dir').value = d.detected[0];
+          }
+          addLog(`Ready on ${d.os} (${(d.detected || []).length} folders detected)`);
+        } catch (e) {
+          addLog('Failed to read /api/info: ' + e.message, 'log-err');
+        }
+      }
+
+      async function loadCatalog() {
+        addLog(tr('loading'));
+        try {
+          const r = await fetch('/api/catalog');
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const d = await r.json();
+          catalog = Array.isArray(d.items) ? d.items : [];
+          renderPacks();
+          addLog(`Loaded ${catalog.length} packs from i10n-downloadform`, 'log-ok');
+        } catch (e) {
+          addLog('Catalog load error: ' + e.message, 'log-err');
+        }
+      }
+
+      document.querySelectorAll('[data-tab]').forEach((btn) => {
+        btn.onclick = () => {
+          document.querySelectorAll('[data-tab]').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('pane-server').style.display = btn.dataset.tab === 'server' ? '' : 'none';
+          document.getElementById('pane-local').style.display = btn.dataset.tab === 'local' ? '' : 'none';
+        };
+      });
+
+      const dz = document.getElementById('dropzone');
+      const fi = document.getElementById('local-file-input');
+      const setFile = (f) => {
+        pickedFile = f || null;
+        document.getElementById('picked-file-name').textContent = f ? `${f.name} (${Math.round(f.size / 1024)} KB)` : '—';
+        document.getElementById('local-install-btn').disabled = !f;
+      };
+      dz.onclick = () => fi.click();
+      fi.onchange = () => setFile(fi.files[0]);
+      dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('drag'); };
+      dz.ondragleave = () => dz.classList.remove('drag');
+      dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove('drag'); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); };
+
+      document.getElementById('local-install-btn').onclick = async () => {
+        const gameDir = (document.getElementById('game-dir').value || '').trim();
+        if (!gameDir) { addLog(tr('needDir'), 'log-err'); return; }
+        if (!pickedFile) return;
+        const btn = document.getElementById('local-install-btn');
+        btn.disabled = true;
+        try {
+          const buf = await pickedFile.arrayBuffer();
+          const res = await fetch('/api/install-local', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'X-File-Name': encodeURIComponent(pickedFile.name),
+              'X-Game-Dir': encodeURIComponent(gameDir),
+              'X-Install-Target': document.getElementById('local-target').value,
+            },
+            body: buf,
+          });
+          const txt = await res.text();
+          if (res.ok) addLog('✅ ' + txt, 'log-ok');
+          else addLog('❌ ' + txt, 'log-err');
+        } catch (e) {
+          addLog('❌ ' + e.message, 'log-err');
+        }
+        btn.disabled = false;
+      };
+
+      document.getElementById('lang-select').onchange = (e) => { lang = e.target.value; localStorage.setItem('meow_zig_lang', lang); applyI18n(); };
+      document.getElementById('search-input').oninput = (e) => { query = e.target.value || ''; renderPacks(); };
+      document.getElementById('reload-catalog-btn').onclick = loadCatalog;
+      document.getElementById('refresh-info-btn').onclick = loadInfo;
+      document.getElementById('theme-btn').onclick = () => {
+        const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('meow_zig_theme', next);
+      };
+      const savedTheme = localStorage.getItem('meow_zig_theme');
+      if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+
+      applyI18n();
+      loadInfo();
+      loadCatalog();
+    </script>
+  </body>
+</html>

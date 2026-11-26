@@ -1,0 +1,11 @@
+.{
+    .name = .meowlab_i10n,
+    .version = "0.1.0",
+    .fingerprint = 0x1bb4297ed9b4afcf,
+    .minimum_zig_version = "0.17.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
